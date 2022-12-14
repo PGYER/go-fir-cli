@@ -78,7 +78,7 @@ func uploadFile() cli.Command {
 
 			api.Upload(file)
 			fmt.Println("上传成功")
-			fmt.Printf("下载页面: %s/%s  ,ReleaseID=%s\n", api.ApiAppInfo.DownloadDomain, api.ApiAppInfo.Short, api.ApiAppInfo.MasterReleaseId)
+			fmt.Printf("下载页面: http://%s/%s\nReleaseID: %s\n", api.ApiAppInfo.DownloadDomain, api.ApiAppInfo.Short, api.ApiAppInfo.MasterReleaseId)
 
 			return nil
 		},

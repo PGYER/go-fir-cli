@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"errors"
+	"fmt"
 	"image"
 	"image/png"
 	"io"
@@ -60,6 +61,13 @@ func Ipa(name string) (*AppFileInfo, error) {
 	info, err := parseIpaFile(plistFile)
 
 	info.Udids = readUdids(embeddedMobileprovision)
+
+	if len(info.Udids) == 0 {
+		info.ReleaseType = "inhouse"
+	} else {
+		info.ReleaseType = "adhoc"
+	}
+
 	// read embedded.mobileprovision file to get udids
 
 	// info.Udids = readUdids(buf)
@@ -83,23 +91,32 @@ func readUdids(embeddedMobileprovision *zip.File) []string {
 		return nil
 	}
 
-	reg := regexp.MustCompile(`<key>ProvisionedDevices</key>\s*<array>(.*?)</array>`)
-	matches := reg.FindStringSubmatch(string(data))
-	if len(matches) == 0 {
-		return nil
-	}
+	pattern := `<key>ProvisionedDevices</key>[\s\S]+?<array>([\s\S]+?)</array>`
 
-	reg = regexp.MustCompile(`<string>(.*?)</string>`)
-	matches1 := reg.FindAllStringSubmatch(matches[1], -1)
-	if len(matches) == 0 {
-		return nil
-	}
+	matched, _ := regexp.MatchString(pattern, string(data))
 
-	udids := make([]string, 0, len(matches1))
-	for _, match := range matches1 {
-		udids = append(udids, match[1])
+	answer := make([]string, 0)
+
+	if matched {
+		r, _ := regexp.Compile(pattern)
+		result := r.FindStringSubmatch(string(data))
+		if len(result) >= 2 {
+			//拆分匹配结果
+			arr := strings.Split(result[1], "<string>")
+			for _, v := range arr {
+				//去除多余的字符
+				v = strings.Replace(strings.TrimSpace(v), "</string>", "", -1)
+				//保存结果
+				if v != "" {
+					fmt.Println(v)
+					answer = append(answer, v)
+				}
+			}
+			return answer
+		}
 	}
-	return udids
+	return []string{}
+
 }
 
 // func readPackageData(file string) map[string]string {

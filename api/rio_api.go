@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -35,6 +36,15 @@ type ApiAppInfo struct {
 	BundleId        string `json:"bundle_id"`
 	DownloadDomain  string `json:"download_domain"`
 	MasterReleaseId string `json:"master_release_id"`
+}
+
+type IconCallback struct {
+	Key      string `json:"key"`
+	Token    string `json:"token"`
+	Origin   string `json:"origin"`
+	ParentId string `json:"parent_id"`
+	Fsize    int    `json:"fsize"`
+	Fname    string `json:"fname"`
 }
 
 type CallbackData struct {
@@ -116,8 +126,13 @@ func (f *FirApi) Login(token string) error {
 
 	resp, err := client.R().SetQueryParam("api_token", token).SetHeader("Content-Type", "application/json").Get(url)
 
-	if err != nil || resp.StatusCode() != 200 {
+	if err != nil {
 		return err
+	}
+
+	if resp.StatusCode() != 200 {
+		return errors.New("登录失败, 请检查token是否正确")
+
 	}
 	var userInfo UserInfo
 
@@ -146,7 +161,6 @@ func (f *FirApi) UploadPrepare(file string) (AppPrepareUploadData, error) {
 
 	}
 
-	// uploadApp :=
 	appInfoService, err := analysis.NewUploadAppService(file)
 
 	if err != nil {
@@ -176,8 +190,11 @@ func (f *FirApi) UploadPrepare(file string) (AppPrepareUploadData, error) {
 	resp, err := resty.New().R().SetBody(jsonBytes).SetHeader("User-Agent", constants.USER_AGENT).SetHeader("Content-Type", "application/json").Post(domain + "/apps")
 	var apiUploadJson AppPrepareUploadData
 
-	if err != nil || resp.StatusCode() >= 400 {
+	if err != nil {
 		return apiUploadJson, err
+	}
+	if resp.StatusCode() >= 400 {
+		return apiUploadJson, errors.New("请求失败 " + resp.Status() + "," + string(resp.Body()))
 	}
 
 	err = json.Unmarshal(resp.Body(), &apiUploadJson)
@@ -271,10 +288,33 @@ func (f *FirApi) uploadAppIcon(file string, uploadingInfo AppPrepareUploadData) 
 
 	uploadFile, _ := os.Open(iconFile)
 	defer uploadFile.Close()
+
 	headers := uploadingInfo.Cert.Icon.CustomHeaders
 
 	fmt.Println(headers)
 	resp, e := client.R().SetBody(uploadFile).SetHeaders(uploadingInfo.Cert.Icon.CustomHeaders).Put(upload_url)
+
+	if e != nil {
+		fmt.Println("上传图片失败")
+		return resp, e
+	}
+
+	iconStat, _ := os.Stat(iconFile)
+
+	iconCallback := IconCallback{
+		Key:      uploadingInfo.Cert.Icon.Key,
+		Token:    uploadingInfo.Cert.Icon.Token,
+		Origin:   "go-fir-cli",
+		ParentId: uploadingInfo.Id,
+		Fsize:    int(iconStat.Size()),
+		Fname:    "blob",
+	}
+
+	str, _ := json.Marshal(iconCallback)
+	url := domain + "/auth/ali/callback"
+
+	resp, e = client.R().SetBody(str).SetHeader("User-Agent", constants.USER_AGENT).SetHeader("Content-Type", "application/json").Post(url)
+
 	return resp, e
 }
 

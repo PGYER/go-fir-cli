@@ -53,8 +53,6 @@ func Apk(file string) (appInfo *AppFileInfo, err error) {
 		os.Exit(1)
 		return
 	}
-	fmt.Println("======")
-	// fmt.Println(b.String())
 
 	type androidLabel struct {
 		XMLName xml.Name `xml:"application"`
