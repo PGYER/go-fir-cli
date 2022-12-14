@@ -4,27 +4,34 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"image/png"
+	"image"
 	"os"
 
 	"github.com/avast/apkparser"
 	"github.com/shogo82148/androidbinary/apk"
 )
 
-func ApkIcon(apkfile string) {
+type ApkApp struct {
+	UploadAppService
+}
+
+func (a *ApkApp) GetIcon() image.Image {
+	path := a.FilePath
+	icon := ApkIcon(path)
+
+	return icon
+}
+
+func ApkIcon(apkfile string) image.Image {
 	pkg, _ := apk.OpenFile(apkfile)
 	defer pkg.Close()
 
 	icon, _ := pkg.Icon(nil) // returns the icon of APK as image.Image
-	file, err := os.Create("icon.png")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer file.Close()
-	png.Encode(file, icon)
+
+	return icon
 }
 
-func Apk(file string) (result map[string]string, err error) {
+func Apk(file string) (appInfo *AppFileInfo, err error) {
 
 	b := bytes.Buffer{}
 
@@ -60,17 +67,22 @@ func Apk(file string) (result map[string]string, err error) {
 		VersionCode string       `xml:"versionCode,attr"`
 		Application androidLabel `xml:"application"`
 	}
-	fmt.Println(b.String())
+	// fmt.Println(b.String())
 
 	err = xml.Unmarshal(b.Bytes(), &manifestData)
 	if err != nil {
 		panic(err)
 	}
+	appInfo = &AppFileInfo{}
+	appInfo.BundleId = manifestData.Package
+	appInfo.Version = manifestData.VersionName
+	appInfo.Build = manifestData.VersionCode
+	appInfo.Name = manifestData.Application.Label
+	appInfo.Type = "android"
+	appInfo.ReleaseType = "inhouse"
 
-	result = make(map[string]string)
-	result["bundle_id"] = manifestData.Package
-	result["version"] = manifestData.VersionName
-	result["build"] = manifestData.VersionCode
-	result["name"] = manifestData.Application.Label
-	return result, nil
+	icon := ApkIcon(file)
+	appInfo.Icon = icon
+
+	return appInfo, nil
 }
