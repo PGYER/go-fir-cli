@@ -1,28 +1,30 @@
 name: go_fir_cli build
-on: [push]
+on:
+  release:
+    types: [created]
 
-jobs: 
-  build:
+jobs:
+  releases-matrix:
+    name: Release Go Binary
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
+        goos: [linux, windows, darwin]
+        goarch: ["386", amd64, arm64]
+        exclude:
+          - goarch: "386"
+            goos: darwin
+          - goarch: arm64
+            goos: windows
+
     steps:
       - uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.19.1'
-          cache: true
-      - name: Install dependencies
-        run: go get .
 
-      - name: Build 
-        run: go build
-
-      - name: get current version
-        run: FIR_VERSION=$(./fir_cli v)
-      
-      - name: Upload 
-        uses: actions/upload-artifact@v3
+      - uses: wangyoucao577/go-release-action@v1.34
         with:
-          name: go_fir_cli
-          path: fir_cli
-        
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          goversion: "1.19.1"
+          binary_name: "go_fir_cli"
