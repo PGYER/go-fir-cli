@@ -17,5 +17,9 @@ jobs:
       - name: Build 
         run: go build
       
-    
+      - name: Upload 
+        uses: actions/upload-artifact@v3
+        with:
+          name: go_fir_cli
+          path: go_fir_cli
         
