@@ -16,6 +16,9 @@ jobs:
 
       - name: Build 
         run: go build
+
+      - name: show dir
+        run: ls -alh
       
       - name: Upload 
         uses: actions/upload-artifact@v3
