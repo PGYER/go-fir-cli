@@ -7,8 +7,8 @@ import (
 	"os"
 	"path"
 
-	"betaqr.com/fir_cli/analysis"
-	"betaqr.com/fir_cli/constants"
+	"betaqr.com/go_fir_cli/analysis"
+	"betaqr.com/go_fir_cli/constants"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -20,12 +20,13 @@ type UserInfo struct {
 
 type FirApi struct {
 	ApiToken             string
+	AppChangelog         string
 	Email                string
+	ApiAppInfo           *ApiAppInfo
 	uploadAppService     *analysis.UploadAppService
 	appFileInfo          *analysis.AppFileInfo
 	appPrepareUploadData *AppPrepareUploadData
 	manualCallbackResp   *ManualCallbackResp
-	ApiAppInfo           *ApiAppInfo
 }
 
 type ApiAppInfo struct {
@@ -131,7 +132,7 @@ func (f *FirApi) Login(token string) error {
 	}
 
 	if resp.StatusCode() != 200 {
-		return errors.New("登录失败, 请检查token是否正确")
+		return errors.New("登录失败, 请检查api token是否正确")
 
 	}
 	var userInfo UserInfo
@@ -203,7 +204,6 @@ func (f *FirApi) UploadPrepare(file string) (AppPrepareUploadData, error) {
 	}
 
 	return apiUploadJson, err
-	//{"user_system_default_download_domain":"hey.scandown.com","id":"6316b69af945486867386f09","type":"android","short":"p45r","download_domain":"d.maps9.com","download_domain_https_ready":true,"app_user_id":"5599faf0692d6563a900001b","storage":"ali","form_method":"PUT","cert":{"icon":{"key":"46eb9073429981ae77c386afe038fdc32f777fa6","token":null,"upload_url":"https://fir-app-icon.oss-cn-beijing.aliyuncs.com/46eb9073429981ae77c386afe038fdc32f777fa6","custom_headers":{"content-type":"image/png","date":"Tue, 13 Dec 2022 07:53:05 GMT","x-oss-date":"Tue, 13 Dec 2022 07:53:05 GMT","CONTENT-DISPOSITION":"attachment; filename* = UTF-8''blob","authorization":"OSS LTAIH45wjMAbqQjW:ZlLU4DS52Rs4LmhtGMdarQW4nu4="},"custom_callback_data":{"original_key":"5d8920eb2ce812f3887f3374e345853c54df3437"}},"binary":{"key":"a6ae0dec010edb7ae724f4e546b4ecf206542f0b.apk","token":null,"upload_url":"https://fir-app-binary.oss-cn-beijing.aliyuncs.com/a6ae0dec010edb7ae724f4e546b4ecf206542f0b.apk","custom_headers":{"content-type":"application/vnd.android.package-archive","date":"Tue, 13 Dec 2022 07:53:05 GMT","x-oss-date":"Tue, 13 Dec 2022 07:53:05 GMT","CONTENT-DISPOSITION":"attachment; filename* = UTF-8''1__1_.apk","authorization":"OSS LTAIH45wjMAbqQjW:LWRuw4bRFIctTW+Qm8GDLoJbWZ8="}},"mqc":{"total":5,"used":0,"is_mqc_availabled":true},"support":"ali","prefix":""}}
 
 }
 
@@ -214,8 +214,6 @@ func (f *FirApi) Upload(file string) error {
 		os.Exit(1)
 	}
 
-	// appInfo, err := fetchAppInfo(file)
-
 	// 获得上传需要的数据
 	uploadingInfo, err := f.UploadPrepare(file)
 	if err != nil {
@@ -225,14 +223,10 @@ func (f *FirApi) Upload(file string) error {
 
 	// 开始上传
 
-	// 1.0 上传 icon
-
 	f.uploadAppIcon(file, uploadingInfo)
-
-	fmt.Println("图标上传完毕, 开始上传App文件")
+	fmt.Println("图标上传完毕, 开始上传App文件...")
 
 	// 1.1 上传 具体文件
-	// uploadFileInfo, err := uploadFile.Stat()
 	resp, e := f.uploadAppFile(uploadingInfo, file)
 	if e != nil {
 		fmt.Println("上传失败", e.Error())

@@ -1,6 +1,6 @@
 icon.png
-fir_cli
-fir_cli.exe
+go_fir_cli
+go_fir_cli.exe
 *.apk
 *.ipa
 .vscode/*

@@ -1,4 +1,4 @@
-module betaqr.com/fir_cli
+module betaqr.com/go_fir_cli
 
 go 1.19
 
