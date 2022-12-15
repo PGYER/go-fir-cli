@@ -6,6 +6,7 @@ import (
 
 	"betaqr.com/fir_cli/analysis"
 	"betaqr.com/fir_cli/api"
+	"betaqr.com/fir_cli/constants"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -17,6 +18,7 @@ func initCli() {
 	app.Name = "fir_cli"
 
 	app.Usage = "完成 fir.im 的命令行操作"
+	app.Version = constants.VERSION
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -30,6 +32,15 @@ func initCli() {
 		readApkPackage(),
 		readIpaPackage(),
 		uploadFile(),
+		cli.Command{
+			Name:      "version",
+			ShortName: "v",
+			Usage:     "查看版本",
+			Action: func(c *cli.Context) error {
+				fmt.Println(constants.VERSION)
+				return nil
+			},
+		},
 	}
 	app.Run(os.Args)
 }

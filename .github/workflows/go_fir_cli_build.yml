@@ -17,12 +17,12 @@ jobs:
       - name: Build 
         run: go build
 
-      - name: show dir
-        run: ls -alh
+      - name: get current version
+        run: FIR_VERSION=$(./fir_cli v)
       
       - name: Upload 
         uses: actions/upload-artifact@v3
         with:
           name: go_fir_cli
-          path: go_fir_cli
+          path: fir_cli
         
