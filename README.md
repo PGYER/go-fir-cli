@@ -2,14 +2,20 @@
 
 一个基于 go 的 go-fir-cli 程序
 
+## 说明
+
+这是一个 fir-cli [https://github.com/PGYER/fir-cli](https://github.com/PGYER/fir-cli) 的 go 版本, 用于上传文件到 betaqr.com (原fir.im)
+
 ## 安装
 
 下载自己对应的系统的文件, 赋值可执行. 若想在全局使用,放到 path 里即可.
 
 
+
+
 ## 使用
 
-假设您已经将 go-fir-cli 放到了当前目录 
+假设您已经将 go-fir-cli 放到了当前目录
 
 ### 查看帮助
 
