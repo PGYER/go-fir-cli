@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"errors"
-	"fmt"
 	"image"
 	"image/png"
 	"io"
@@ -108,7 +107,6 @@ func readUdids(embeddedMobileprovision *zip.File) []string {
 				v = strings.Replace(strings.TrimSpace(v), "</string>", "", -1)
 				//保存结果
 				if v != "" {
-					fmt.Println(v)
 					answer = append(answer, v)
 				}
 			}
