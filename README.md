@@ -4,11 +4,15 @@
 
 ## 说明
 
-这是一个 fir-cli [https://github.com/PGYER/fir-cli](https://github.com/PGYER/fir-cli) 的 go 版本, 用于上传文件到 betaqr.com (原fir.im)
+这是一个 fir-cli [https://github.com/PGYER/fir-cli](https://github.com/PGYER/fir-cli) 的 go 版本, 用于上传文件到 [betaqr.com](https://www.betaqr.com) (原fir.im)
 
 ## 安装
 
 下载自己对应的系统的文件, 赋值可执行. 若想在全局使用,放到 path 里即可.
+
+- macOS 使用 darwin-amd64
+- Linux 使用 amd64
+- Windows 使用 
 
 
 

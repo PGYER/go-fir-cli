@@ -22,6 +22,8 @@ type FirApi struct {
 	ApiToken             string
 	AppChangelog         string
 	Email                string
+	QrCodePngNeed        bool
+	QrCodeAsciiNeed      bool
 	ApiAppInfo           *ApiAppInfo
 	uploadAppService     *analysis.UploadAppService
 	appFileInfo          *analysis.AppFileInfo
@@ -236,7 +238,7 @@ func (f *FirApi) Upload(file string) error {
 	fmt.Println(resp)
 
 	// 进行回调
-	resp, e = manualCallback(file, f.appFileInfo, uploadingInfo)
+	resp, e = f.manualCallback(file, f.appFileInfo, uploadingInfo)
 	if e != nil {
 		fmt.Println("上传成功, 但是回调失败", e.Error())
 		os.Exit(1)
@@ -335,7 +337,7 @@ func (f *FirApi) uploadAppFile(uploadingInfo AppPrepareUploadData, file string) 
 	return resp, e
 }
 
-func manualCallback(file string, appInfo *analysis.AppFileInfo, uploadingInfo AppPrepareUploadData) (*resty.Response, error) {
+func (f *FirApi) manualCallback(file string, appInfo *analysis.AppFileInfo, uploadingInfo AppPrepareUploadData) (*resty.Response, error) {
 	// manual callback
 	client := resty.New()
 
@@ -355,7 +357,7 @@ func manualCallback(file string, appInfo *analysis.AppFileInfo, uploadingInfo Ap
 		ReleaseType: appInfo.ReleaseType,
 		Token:       uploadingInfo.Cert.Binary.Token,
 		Version:     appInfo.Version,
-		Changelog:   appInfo.Changelog,
+		Changelog:   f.AppChangelog,
 		UserId:      uploadingInfo.AppUserId,
 	}
 

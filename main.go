@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"betaqr.com/go_fir_cli/api"
 	"betaqr.com/go_fir_cli/constants"
+	"github.com/skip2/go-qrcode"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -33,7 +35,7 @@ func initCli() {
 		cli.Command{
 			Name:      "version",
 			ShortName: "v",
-			Usage:     "查看版本",
+			Usage:     "查看 go_fir_cli 版本",
 			Action: func(c *cli.Context) error {
 				fmt.Println(constants.VERSION)
 				return nil
@@ -77,7 +79,19 @@ func uploadFile() cli.Command {
 			},
 			cli.StringFlag{
 				Name:  "changelog, c",
-				Usage: "app 的更新日志",
+				Usage: "app 的更新日志, 可以是文件路径, 也可以是字符串",
+			},
+			cli.BoolFlag{
+				Name:  "specific_release, s",
+				Usage: "生成的下载地址是否精确指定到 release, 默认为 false",
+			},
+			cli.BoolFlag{
+				Name:  "qrcode, q",
+				Usage: "输出二维码文件 qrcode.png, 用于下载, 默认为 false",
+			},
+			cli.BoolFlag{
+				Name:  "qrcodeascii, Q",
+				Usage: "输出二维码到终端, 默认为 false",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -97,16 +111,50 @@ func uploadFile() cli.Command {
 
 			changelog := c.String("changelog")
 
+			// 检测 changelog 文件path是否存在
+			if changelog != "" {
+				_, err := os.Stat(changelog)
+				if err != nil {
+					// 文件不存在, 说明changlog 就是 changlog 字符串
+				} else {
+					//
+					str, e := ioutil.ReadFile(changelog)
+					if e != nil {
+
+					} else {
+						changelog = string(str)
+					}
+				}
+			}
+
 			api := api.FirApi{
-				ApiToken:     token,
-				AppChangelog: changelog,
+				ApiToken:        token,
+				AppChangelog:    changelog,
+				QrCodePngNeed:   c.Bool("qrcode"),
+				QrCodeAsciiNeed: c.Bool("qrcodeascii"),
 			}
 
 			api.Upload(file)
 			fmt.Println("上传成功")
-			fmt.Printf("下载页面: http://%s/%s\nReleaseID: %s\n", api.ApiAppInfo.DownloadDomain, api.ApiAppInfo.Short, api.ApiAppInfo.MasterReleaseId)
+			url := buildDownloadUrl(api.ApiAppInfo, c.Bool("specific_release"))
+			fmt.Printf("下载页面: %s\nReleaseID: %s\n", url, api.ApiAppInfo.MasterReleaseId)
 
+			if api.QrCodePngNeed {
+				fmt.Println("二维码文件: qrcode.png")
+				qrcode.WriteFile(url, qrcode.Medium, 256, "qr.png")
+			}
+
+			if api.QrCodeAsciiNeed {
+
+			}
 			return nil
 		},
 	}
+}
+
+func buildDownloadUrl(apiAppInfo *api.ApiAppInfo, includeRelease bool) string {
+	if includeRelease {
+		return fmt.Sprintf("http://%s/%s?release_id=%s", apiAppInfo.DownloadDomain, apiAppInfo.Short, apiAppInfo.MasterReleaseId)
+	}
+	return fmt.Sprintf("http://%s/%s", apiAppInfo.DownloadDomain, apiAppInfo.Short)
 }
