@@ -86,12 +86,8 @@ func uploadFile() cli.Command {
 				Usage: "生成的下载地址是否精确指定到 release, 默认为 false",
 			},
 			cli.BoolFlag{
-				Name:  "qrcode, q",
+				Name:  "qrcode, Q",
 				Usage: "输出二维码文件 qrcode.png, 用于下载, 默认为 false",
-			},
-			cli.BoolFlag{
-				Name:  "qrcodeascii, Q",
-				Usage: "输出二维码到终端, 默认为 false",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -144,9 +140,6 @@ func uploadFile() cli.Command {
 				qrcode.WriteFile(url, qrcode.Medium, 256, "qr.png")
 			}
 
-			if api.QrCodeAsciiNeed {
-
-			}
 			return nil
 		},
 	}
