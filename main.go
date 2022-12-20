@@ -7,6 +7,7 @@ import (
 
 	"betaqr.com/go_fir_cli/api"
 	"betaqr.com/go_fir_cli/constants"
+	"betaqr.com/go_fir_cli/notifiers"
 	"github.com/skip2/go-qrcode"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -62,6 +63,33 @@ func initLogin() cli.Command {
 			fir_api := &api.FirApi{}
 			fir_api.Login(api_token)
 			fmt.Println(fir_api.Email)
+
+			return nil
+		},
+	}
+}
+
+func testWebhook() cli.Command {
+	return cli.Command{
+		Name:  "test",
+		Usage: "测试 webhook",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name: "token, t",
+			},
+			cli.StringFlag{
+				Name: "secret, s",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			token := c.String("token")
+			secret := c.String("secret")
+
+			notifier := &notifiers.DingTalkNotifier{
+				Key:         token,
+				SecretToken: secret,
+			}
+			notifier.Notify("测试消息")
 
 			return nil
 		},
