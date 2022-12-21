@@ -22,11 +22,13 @@ go-fir-cli 只实现了 fir-cli 的部分功能, 并无计划实现全部功能,
 
 ## 安装
 
-下载自己对应的系统的文件, 赋值可执行. 若想在全局使用,放到 path 里即可.
+
+
+进入[https://github.com/PGYER/go-fir-cli/releases](https://github.com/PGYER/go-fir-cli/releases)下载自己对应的系统的文件, 并给予可执行权限. 若想在全局使用,请将其放到 path 里即可.
 
 - macOS 使用 darwin-amd64
 - Linux 使用 amd64
-- Windows 使用 
+- Windows 使用 windows-386 或 windows-amd64
 
 
 
