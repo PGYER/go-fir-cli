@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"time"
 
 	"betaqr.com/go_fir_cli/analysis"
 	"betaqr.com/go_fir_cli/constants"
@@ -229,16 +230,35 @@ func (f *FirApi) Upload(file string) error {
 	fmt.Println("图标上传完毕, 开始上传App文件...")
 
 	// 1.1 上传 具体文件
-	resp, e := f.uploadAppFile(uploadingInfo, file)
-	if e != nil {
-		fmt.Println("上传失败", e.Error())
-		os.Exit(1)
+
+	uploaded := make(chan bool)
+
+	go func() {
+		resp, e := f.uploadAppFile(uploadingInfo, file)
+		if e != nil {
+			fmt.Println("上传失败", e.Error())
+			os.Exit(1)
+		}
+
+		fmt.Println(resp)
+
+		uploaded <- true
+	}()
+
+	tick := time.NewTicker(1 * time.Second)
+SELECT:
+	for {
+		select {
+		case <-tick.C:
+			fmt.Print(".")
+		case <-uploaded:
+			fmt.Println("上传成功")
+			break SELECT
+		}
 	}
 
-	fmt.Println(resp)
-
 	// 进行回调
-	resp, e = f.manualCallback(file, f.appFileInfo, uploadingInfo)
+	resp, e := f.manualCallback(file, f.appFileInfo, uploadingInfo)
 	if e != nil {
 		fmt.Println("上传成功, 但是回调失败", e.Error())
 		os.Exit(1)
