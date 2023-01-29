@@ -111,6 +111,7 @@ func uploadFile() cli.Command {
 	return cli.Command{
 		Name:  "upload",
 		Usage: "上传文件, 例如 go_fir_cli -t FIR_TOKEN upload -f FILE_PATH -c CHANGELOG",
+
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "file, f",

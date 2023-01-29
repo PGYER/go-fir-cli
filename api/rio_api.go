@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path"
 	"time"
 
 	"betaqr.com/go_fir_cli/analysis"
 	"betaqr.com/go_fir_cli/constants"
+	"github.com/cheggaaa/pb"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -250,7 +253,7 @@ SELECT:
 	for {
 		select {
 		case <-tick.C:
-			fmt.Print(".")
+			// fmt.Print(".")
 		case <-uploaded:
 			fmt.Println("上传成功")
 			break SELECT
@@ -334,27 +337,42 @@ func (f *FirApi) uploadAppIcon(file string, uploadingInfo AppPrepareUploadData) 
 	return resp, e
 }
 
-func (f *FirApi) uploadAppFile(uploadingInfo AppPrepareUploadData, file string) (*resty.Response, error) {
+func (f *FirApi) uploadAppFile(uploadingInfo AppPrepareUploadData, file string) (*http.Response, error) {
 	appUploadConfigInfo := uploadingInfo.Cert.Binary
 	upload_url := appUploadConfigInfo.UploadUrl
+
+	bar := pb.New(100)
 
 	info, _ := os.Stat(file)
 
 	fileSize := info.Size()
 	fmt.Println("文件大小: ", fileSize)
+
+	bar.SetTotal(int(fileSize))
+	bar.Start()
+	defer bar.Finish()
+
 	uploadFile, _ := os.Open(file)
 	defer uploadFile.Close()
 
-	// uploadFile.on
+	fmt.Println("begin to upload")
 
-	// var percent chan int64 = make(chan int64, 1)
+	request, _ := http.NewRequest("PUT", upload_url, io.TeeReader(uploadFile, bar))
 
-	client := resty.New()
-	// 上传时候显示百分比
+	for k, v := range uploadingInfo.Cert.Binary.CustomHeaders {
+		request.Header.Set(k, v)
+	}
 
-	resp, e := client.R().SetBody(uploadFile).SetHeaders(uploadingInfo.Cert.Binary.CustomHeaders).Put(upload_url)
+	client := &http.Client{}
 
-	return resp, e
+	response, err := client.Do(request)
+	if err != nil {
+		panic(err)
+	}
+	defer response.Body.Close()
+
+	return response, err
+
 }
 
 func (f *FirApi) manualCallback(file string, appInfo *analysis.AppFileInfo, uploadingInfo AppPrepareUploadData) (*resty.Response, error) {
