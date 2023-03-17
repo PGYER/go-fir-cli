@@ -1,15 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os"
-
 	"betaqr.com/go_fir_cli/api"
 	"betaqr.com/go_fir_cli/constants"
 	"betaqr.com/go_fir_cli/notifiers"
+	"betaqr.com/go_fir_cli/utils"
+	"fmt"
 	"github.com/skip2/go-qrcode"
 	"gopkg.in/urfave/cli.v1"
+	"io/ioutil"
+	"os"
 )
 
 func main() {
@@ -66,12 +66,12 @@ func initLogin() cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-
 			api_token := c.String("token")
 			fir_api := &api.FirApi{}
-			fir_api.Login(api_token)
+			if err := fir_api.Login(api_token); err != nil {
+				return utils.SaveToLocal(fir_api.Email, api_token)
+			}
 			fmt.Println(fir_api.Email)
-
 			return nil
 		},
 	}
@@ -92,6 +92,10 @@ func testWebhook() cli.Command {
 		Action: func(c *cli.Context) error {
 			token := c.String("token")
 			secret := c.String("secret")
+
+			if token == "" {
+				token = utils.LoadLocalToken()
+			}
 
 			notifier := &notifiers.DingTalkNotifier{
 				Key:         token,
@@ -170,6 +174,10 @@ func uploadFile() cli.Command {
 
 			file := c.String("file")
 			token := c.GlobalString("token")
+
+			if token == "" {
+				token = utils.LoadLocalToken()
+			}
 
 			if token == "" {
 				fmt.Println("请先设置 token")
