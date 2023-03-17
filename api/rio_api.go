@@ -10,8 +10,8 @@ import (
 	"path"
 	"time"
 
-	"betaqr.com/go_fir_cli/analysis"
-	"betaqr.com/go_fir_cli/constants"
+	"github.com/PGYER/go-fir-cli/analysis"
+	"github.com/PGYER/go-fir-cli/constants"
 	"github.com/cheggaaa/pb"
 	"github.com/go-resty/resty/v2"
 )

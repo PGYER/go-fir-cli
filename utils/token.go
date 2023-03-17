@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const CONFIG_FILE = ".go-fir-cli"
+
 func LoadLocalToken() string {
 	config, err := LoadLocalConfig()
 	if err != nil {
@@ -15,12 +17,25 @@ func LoadLocalToken() string {
 	return config["token"]
 }
 
+func DelConfig() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	tokenPath := filepath.Join(home, CONFIG_FILE)
+	// 如果存在, 则删除文件
+	if _, err := os.Stat(tokenPath); err == nil {
+		return os.Remove(tokenPath)
+	}
+	return nil
+}
+
 func LoadLocalConfig() (map[string]string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
 	}
-	tokenPath := filepath.Join(home, ".fir-cli")
+	tokenPath := filepath.Join(home, CONFIG_FILE)
 	raw, err := os.ReadFile(tokenPath)
 	if err != nil {
 		return nil, err
@@ -45,6 +60,6 @@ func SaveToLocal(email string, token string) error {
 	if err != nil {
 		return err
 	}
-	tokenPath := filepath.Join(home, ".fir-cli")
+	tokenPath := filepath.Join(home, CONFIG_FILE)
 	return os.WriteFile(tokenPath, []byte(raw), 0644)
 }

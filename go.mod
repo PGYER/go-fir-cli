@@ -1,4 +1,4 @@
-module betaqr.com/go_fir_cli
+module github.com/PGYER/go-fir-cli
 
 go 1.19
 

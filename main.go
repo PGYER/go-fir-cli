@@ -1,15 +1,16 @@
 package main
 
 import (
-	"betaqr.com/go_fir_cli/api"
-	"betaqr.com/go_fir_cli/constants"
-	"betaqr.com/go_fir_cli/notifiers"
-	"betaqr.com/go_fir_cli/utils"
 	"fmt"
-	"github.com/skip2/go-qrcode"
-	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
 	"os"
+
+	"github.com/PGYER/go-fir-cli/api"
+	"github.com/PGYER/go-fir-cli/constants"
+	"github.com/PGYER/go-fir-cli/notifiers"
+	"github.com/PGYER/go-fir-cli/utils"
+	"github.com/skip2/go-qrcode"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 }
 func initCli() {
 	app := cli.NewApp()
-	app.Name = "go_fir_cli"
+	app.Name = "go-fir-cli"
 
 	app.Usage = "完成 fir.im 的命令行操作"
 	app.Version = constants.VERSION
@@ -31,12 +32,13 @@ func initCli() {
 
 	app.Commands = []cli.Command{
 		initLogin(),
+		logoutCommand(),
 		testWebhook(),
 		uploadFile(),
 		cli.Command{
 			Name:      "version",
 			ShortName: "v",
-			Usage:     "查看 go_fir_cli 版本",
+			Usage:     "查看 go-fir-cli 版本",
 			Action: func(c *cli.Context) error {
 				fmt.Println(constants.VERSION)
 				return nil
@@ -44,9 +46,9 @@ func initCli() {
 		},
 		cli.Command{
 			Name:  "upgrade",
-			Usage: "如何升级 go_fir_cli",
+			Usage: "如何升级 go-fir-cli",
 			Action: func(c *cli.Context) error {
-				fmt.Println("请访问 https://github.com/PGYER/go-fir-cli/releases 下载对应版本, 并替换原有的 go_fir_cli 文件")
+				fmt.Println("请访问 https://github.com/PGYER/go-fir-cli/releases 下载对应版本, 并替换原有的 go-fir-cli 文件")
 				return nil
 			},
 		},
@@ -65,13 +67,28 @@ func initLogin() cli.Command {
 				Usage: "fir.im 的 api token",
 			},
 		},
+
 		Action: func(c *cli.Context) error {
 			api_token := c.String("token")
 			fir_api := &api.FirApi{}
 			if err := fir_api.Login(api_token); err != nil {
+				fmt.Println("登录失败, 请检查 token 是否正确")
+			} else {
+				fmt.Println(fir_api.Email + " 登录成功")
 				return utils.SaveToLocal(fir_api.Email, api_token)
 			}
-			fmt.Println(fir_api.Email)
+			return nil
+		},
+	}
+}
+
+func logoutCommand() cli.Command {
+	return cli.Command{
+		Name:  "logout",
+		Usage: "退出登录",
+		Action: func(c *cli.Context) error {
+			utils.DelConfig()
+			fmt.Println("已经退出登录")
 			return nil
 		},
 	}
@@ -114,7 +131,7 @@ func testWebhook() cli.Command {
 func uploadFile() cli.Command {
 	return cli.Command{
 		Name:  "upload",
-		Usage: "上传文件, 例如 go_fir_cli -t FIR_TOKEN upload -f FILE_PATH -c CHANGELOG",
+		Usage: "上传文件, 例如 go-fir-cli -t FIR_TOKEN upload -f FILE_PATH -c CHANGELOG",
 
 		Flags: []cli.Flag{
 			cli.StringFlag{

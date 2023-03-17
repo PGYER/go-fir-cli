@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"time"
 
-	"betaqr.com/go_fir_cli/api"
+	"github.com/PGYER/go-fir-cli/api"
 	"github.com/go-resty/resty/v2"
 )
 

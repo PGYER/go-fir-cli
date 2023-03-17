@@ -1,7 +1,7 @@
 icon.png
 qr.png
-go_fir_cli
-go_fir_cli.exe
+go-fir-cli
+go-fir-cli.exe
 test.go
 *.apk
 *.ipa
