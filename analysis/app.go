@@ -21,12 +21,6 @@ type AppFileInfo struct {
 	Changelog   string
 }
 
-type IUploadApp interface {
-	GetIcon() image.Image
-	GetAppFileInfo() map[string]string
-	FilePath() string
-}
-
 type UploadAppService struct {
 	AppFileInfo *AppFileInfo
 	FilePath    string

@@ -35,7 +35,7 @@ func initCli() {
 		logoutCommand(),
 		testWebhook(),
 		uploadFile(),
-		cli.Command{
+		{
 			Name:      "version",
 			ShortName: "v",
 			Usage:     "查看 go-fir-cli 版本",
@@ -44,7 +44,7 @@ func initCli() {
 				return nil
 			},
 		},
-		cli.Command{
+		{
 			Name:  "upgrade",
 			Usage: "如何升级 go-fir-cli",
 			Action: func(c *cli.Context) error {
@@ -138,6 +138,12 @@ func uploadFile() cli.Command {
 				Name:  "file, f",
 				Usage: "apk 或者 ipa 的文件路径",
 			},
+
+			cli.StringFlag{
+				Name:  "icon_path, ip",
+				Usage: "如果需要自定义icon, 则这里传 icon 的路径",
+			},
+
 			cli.StringFlag{
 				Name:  "changelog, c",
 				Usage: "app 的更新日志, 可以是文件路径, 也可以是字符串",
@@ -226,6 +232,7 @@ func uploadFile() cli.Command {
 
 			api := api.FirApi{
 				ApiToken:        token,
+				CustomIconPath:  c.String("icon_path"),
 				AppChangelog:    changelog,
 				QrCodePngNeed:   c.Bool("qrcode"),
 				QrCodeAsciiNeed: c.Bool("qrcodeascii"),

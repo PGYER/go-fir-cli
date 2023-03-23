@@ -26,6 +26,7 @@ type FirApi struct {
 	ApiToken             string
 	AppChangelog         string
 	Email                string
+	CustomIconPath       string
 	QrCodePngNeed        bool
 	QrCodeAsciiNeed      bool
 	ApiAppInfo           *ApiAppInfo
@@ -154,7 +155,6 @@ func (f *FirApi) UploadPrepare(file string) (AppPrepareUploadData, error) {
 	var err error
 
 	if f.uploadAppService == nil {
-		// uploadAppService, err := analysis.NewUploadAppService(file)
 		f.uploadAppService, err = analysis.NewUploadAppService(file)
 		if err != nil {
 			fmt.Println(err)
@@ -304,6 +304,10 @@ func (f *FirApi) uploadAppIcon(file string, uploadingInfo AppPrepareUploadData) 
 		return nil, e
 	}
 	iconFile := "blob"
+
+	if f.CustomIconPath != "" {
+		iconFile = f.CustomIconPath
+	}
 
 	uploadFile, _ := os.Open(iconFile)
 	defer uploadFile.Close()
