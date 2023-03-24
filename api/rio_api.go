@@ -29,6 +29,7 @@ type FirApi struct {
 	CustomIconPath       string
 	QrCodePngNeed        bool
 	QrCodeAsciiNeed      bool
+	SaveUploadedInfo     bool
 	ApiAppInfo           *ApiAppInfo
 	uploadAppService     *analysis.UploadAppService
 	appFileInfo          *analysis.AppFileInfo
@@ -44,6 +45,7 @@ type ApiAppInfo struct {
 	BundleId        string `json:"bundle_id"`
 	DownloadDomain  string `json:"download_domain"`
 	MasterReleaseId string `json:"master_release_id"`
+	DownloadUrl     string
 }
 
 type IconCallback struct {

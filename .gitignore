@@ -7,3 +7,4 @@ test.go
 *.ipa
 .vscode/*
 michael_jordan.png
+go-fir-cli-answer.json

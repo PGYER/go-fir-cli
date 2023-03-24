@@ -157,6 +157,11 @@ func uploadFile() cli.Command {
 				Usage: "输出二维码文件 qrcode.png, 用于下载, 默认为 false",
 			},
 
+			cli.BoolFlag{
+				Name:  "save-uploaded-info, sui",
+				Usage: "上传成功后, 保存上传信息到本地 go-fir-cli-answer.json, 用于用户的其他集成操作, 默认为 false",
+			},
+
 			cli.StringFlag{
 				Name:  "dingtalkToken, dt",
 				Usage: "dingtalk 的机器人的 token, 用于发送通知",
@@ -231,21 +236,27 @@ func uploadFile() cli.Command {
 			}
 
 			api := api.FirApi{
-				ApiToken:        token,
-				CustomIconPath:  c.String("icon_path"),
-				AppChangelog:    changelog,
-				QrCodePngNeed:   c.Bool("qrcode"),
-				QrCodeAsciiNeed: c.Bool("qrcodeascii"),
+				ApiToken:         token,
+				CustomIconPath:   c.String("icon_path"),
+				AppChangelog:     changelog,
+				QrCodePngNeed:    c.Bool("qrcode"),
+				QrCodeAsciiNeed:  c.Bool("qrcodeascii"),
+				SaveUploadedInfo: c.Bool("save-uploaded-info"),
 			}
 
 			api.Upload(file)
 			fmt.Println("上传成功")
 			url := buildDownloadUrl(api.ApiAppInfo, c.Bool("specific_release"))
+			api.ApiAppInfo.DownloadUrl = url
 			fmt.Printf("下载页面: %s\nReleaseID: %s\n", url, api.ApiAppInfo.MasterReleaseId)
 
 			if api.QrCodePngNeed {
 				fmt.Println("二维码文件: qrcode.png")
 				qrcode.WriteFile(url, qrcode.Medium, 256, "qr.png")
+			}
+
+			if api.SaveUploadedInfo {
+				utils.SaveAnswer(api.ApiAppInfo)
 			}
 
 			if c.String("dingtalkToken") != "" {
