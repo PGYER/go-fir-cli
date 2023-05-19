@@ -8,7 +8,7 @@ import (
 	"github.com/PGYER/go-fir-cli/api"
 )
 
-func SaveAnswer(apiAppInfo *api.ApiAppInfo) error {
+func SaveAnswer(filePath string, apiAppInfo *api.ApiAppInfo) error {
 	// fileName := "fir-cli-answer.json"
 
 	data := make(map[string]string)
@@ -23,7 +23,7 @@ func SaveAnswer(apiAppInfo *api.ApiAppInfo) error {
 
 	json, _ := json.Marshal(data)
 	// 将 data 转化为 json 后存储到本地answer.json 中
-	ioutil.WriteFile("go-fir-cli-answer.json", json, 0644)
+	ioutil.WriteFile(filePath, json, 0644)
 
 	return nil
 }
