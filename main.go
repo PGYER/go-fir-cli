@@ -159,7 +159,12 @@ func uploadFile() cli.Command {
 
 			cli.BoolFlag{
 				Name:  "save-uploaded-info, sui",
-				Usage: "上传成功后, 保存上传信息到本地 go-fir-cli-answer.json, 用于用户的其他集成操作, 默认为 false",
+				Usage: "上传成功后, 保存上传信息到本地json文件（默认为go-fir-cli-answer.json）, 用于用户的其他集成操作, 默认为 false",
+			},
+
+			cli.StringFlag{
+				Name: "save-uploaded-file, suf",
+				Usage: "指定上传成功后, 保存的上传文件路径，默认为当前目录的go-fir-cli-answer.json",
 			},
 
 			cli.StringFlag{
@@ -242,6 +247,7 @@ func uploadFile() cli.Command {
 				QrCodePngNeed:    c.Bool("qrcode"),
 				QrCodeAsciiNeed:  c.Bool("qrcodeascii"),
 				SaveUploadedInfo: c.Bool("save-uploaded-info"),
+				SaveUploadedPath: c.String("save-uploaded-file"),
 			}
 
 			api.Upload(file)
@@ -256,7 +262,11 @@ func uploadFile() cli.Command {
 			}
 
 			if api.SaveUploadedInfo {
-				utils.SaveAnswer(api.ApiAppInfo)
+				if api.SaveUploadedPath != "" {
+					utils.SaveAnswer(api.SaveUploadedPath, api.ApiAppInfo)
+				} else {
+					utils.SaveAnswer("go-fir-cli-answer.json", api.ApiAppInfo)
+				}
 			}
 
 			if c.String("dingtalkToken") != "" {

@@ -30,6 +30,7 @@ type FirApi struct {
 	QrCodePngNeed        bool
 	QrCodeAsciiNeed      bool
 	SaveUploadedInfo     bool
+	SaveUploadedPath     string
 	ApiAppInfo           *ApiAppInfo
 	uploadAppService     *analysis.UploadAppService
 	appFileInfo          *analysis.AppFileInfo
