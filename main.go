@@ -297,3 +297,5 @@ func buildDownloadUrl(apiAppInfo *api.ApiAppInfo, includeRelease bool) string {
 	}
 	return fmt.Sprintf("http://%s/%s", apiAppInfo.DownloadDomain, apiAppInfo.Short)
 }
+
+// 直接运行
