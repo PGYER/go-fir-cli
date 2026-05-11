@@ -1,8 +1,8 @@
 name: go-fir-cli build
 
 on:
-  release:
-    types: [created]
+  # 只用 push tag 触发, 避免与 release:created 重复触发导致 asset 上传冲突
+  # gh release create 会自动 push tag, 所以 release 流程仍能走通
   push:
     tags: ['v*']
   workflow_dispatch:
