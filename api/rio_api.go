@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"time"
@@ -23,19 +24,23 @@ type UserInfo struct {
 }
 
 type FirApi struct {
-	ApiToken             string
-	AppChangelog         string
-	Email                string
-	CustomIconPath       string
-	QrCodePngNeed        bool
-	QrCodeAsciiNeed      bool
-	SaveUploadedInfo     bool
-	SaveUploadedPath     string
-	ApiAppInfo           *ApiAppInfo
-	uploadAppService     *analysis.UploadAppService
-	appFileInfo          *analysis.AppFileInfo
-	appPrepareUploadData *AppPrepareUploadData
-	manualCallbackResp   *ManualCallbackResp
+	ApiToken              string
+	AppChangelog          string
+	Email                 string
+	CustomIconPath        string
+	QrCodePngNeed         bool
+	QrCodeAsciiNeed       bool
+	SaveUploadedInfo      bool
+	SaveUploadedPath      string
+	SpecifyAppDisplayName string // 覆盖 callback name 字段, 对应 Ruby --specify_app_display_name
+	SkipUpdateIcon        bool   // 跳过图标上传, 对应 Ruby --skip_update_icon
+	UserDownloadFileName  string // 指定 CDN 下载时的文件名, 对应 Ruby --user_download_file_name
+	ForcePinHistory       bool   // 上传完成后将 release 钉到下载页面, 对应 Ruby --force_pin_history
+	ApiAppInfo            *ApiAppInfo
+	uploadAppService      *analysis.UploadAppService
+	appFileInfo           *analysis.AppFileInfo
+	appPrepareUploadData  *AppPrepareUploadData
+	manualCallbackResp    *ManualCallbackResp
 }
 
 type ApiAppInfo struct {
@@ -191,7 +196,7 @@ func (f *FirApi) UploadPrepare(file string) (AppPrepareUploadData, error) {
 		BundleId:       appFileInfo.BundleId,
 		Fname:          path.Base(file),
 		ForceUpload:    "ali",
-		SkipIconUpload: false,
+		SkipIconUpload: f.SkipUpdateIcon,
 		ManualCallback: true,
 		Protocol:       "https",
 	}
@@ -232,8 +237,12 @@ func (f *FirApi) Upload(file string) error {
 
 	// 开始上传
 
-	f.uploadAppIcon(file, uploadingInfo)
-	fmt.Println("图标上传完毕, 开始上传App文件...")
+	if f.SkipUpdateIcon {
+		fmt.Println("跳过图标上传 (--skip-update-icon)")
+	} else {
+		f.uploadAppIcon(file, uploadingInfo)
+		fmt.Println("图标上传完毕, 开始上传App文件...")
+	}
 
 	// 1.1 上传 具体文件
 
@@ -286,6 +295,30 @@ SELECT:
 
 	f.ApiAppInfo = &apiAppInfo
 
+	if f.ForcePinHistory && manualCallbackResp.ReleaseId != "" {
+		if err := f.forcePinRelease(apiAppInfo.Id, manualCallbackResp.ReleaseId); err != nil {
+			fmt.Println("固定 release 到下载页失败:", err)
+		} else {
+			fmt.Println("已固定 release 到下载页 (--force-pin-history)")
+		}
+	}
+
+	return nil
+}
+
+// forcePinRelease 对应 Ruby --force_pin_history: 上传完成后把这个 release 固定在下载页面
+func (f *FirApi) forcePinRelease(appId, releaseId string) error {
+	endpoint := fmt.Sprintf("%s/apps/%s/releases/%s/force_set_history", domain, appId, releaseId)
+	resp, err := resty.New().R().
+		SetHeader("User-Agent", constants.USER_AGENT).
+		SetQueryParam("api_token", f.ApiToken).
+		Post(endpoint)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode() >= 400 {
+		return errors.New(resp.Status() + ": " + string(resp.Body()))
+	}
 	return nil
 }
 
@@ -370,6 +403,12 @@ func (f *FirApi) uploadAppFile(uploadingInfo AppPrepareUploadData, file string) 
 		request.Header.Set(k, v)
 	}
 
+	// --user-download-file-name: 覆盖 CDN 下载时的 Content-Disposition 文件名
+	if f.UserDownloadFileName != "" {
+		request.Header.Set("CONTENT-DISPOSITION",
+			"attachment; filename="+url.QueryEscape(f.UserDownloadFileName))
+	}
+
 	client := &http.Client{}
 
 	response, err := client.Do(request)
@@ -390,13 +429,18 @@ func (f *FirApi) manualCallback(file string, appInfo *analysis.AppFileInfo, uplo
 
 	fi, _ := os.Stat(file)
 
+	name := appInfo.Name
+	if f.SpecifyAppDisplayName != "" {
+		name = f.SpecifyAppDisplayName
+	}
+
 	callbackData := CallbackData{
 		Build:       appInfo.Build,
 		Fsize:       int(fi.Size()),
 		Fname:       path.Base(file),
 		ReleaseTag:  "develop",
 		Key:         uploadingInfo.Cert.Binary.Key,
-		Name:        appInfo.Name,
+		Name:        name,
 		Origin:      "go-fir-cli",
 		ParentId:    uploadingInfo.Id,
 		ReleaseType: appInfo.ReleaseType,

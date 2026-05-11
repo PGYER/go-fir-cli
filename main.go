@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
+	"github.com/PGYER/go-fir-cli/analysis"
 	"github.com/PGYER/go-fir-cli/api"
 	"github.com/PGYER/go-fir-cli/constants"
 	"github.com/PGYER/go-fir-cli/notifiers"
@@ -33,6 +35,8 @@ func initCli() {
 	app.Commands = []cli.Command{
 		initLogin(),
 		logoutCommand(),
+		meCommand(),
+		infoCommand(),
 		testWebhook(),
 		uploadFile(),
 		{
@@ -168,6 +172,23 @@ func uploadFile() cli.Command {
 			},
 
 			cli.StringFlag{
+				Name:  "specify-app-display-name, sadn",
+				Usage: "指定 app 在 fir.im 上显示的名称, 覆盖 ipa/apk 内的 display name",
+			},
+			cli.BoolFlag{
+				Name:  "skip-update-icon, sui-icon",
+				Usage: "跳过 app 图标上传, 保留服务器上已有的图标",
+			},
+			cli.StringFlag{
+				Name:  "user-download-file-name, udfn",
+				Usage: "自定义下载时的文件名 (设置到 CDN Content-Disposition)",
+			},
+			cli.BoolFlag{
+				Name:  "force-pin-history, fph",
+				Usage: "上传完成后将本次 release 固定到下载页面 (超出最大固定数会挤掉最老的)",
+			},
+
+			cli.StringFlag{
 				Name:  "dingtalkToken, dt",
 				Usage: "dingtalk 的机器人的 token, 用于发送通知",
 			},
@@ -178,6 +199,14 @@ func uploadFile() cli.Command {
 			cli.StringFlag{
 				Name:  "dingtalkCustomMsg, dcm",
 				Usage: "dingtalk 的机器人的自定义消息, 用于发送通知增加关键字",
+			},
+			cli.StringFlag{
+				Name:  "dingtalkAtPhones, dap",
+				Usage: "dingtalk 通知 @ 的手机号, 多个用逗号分隔",
+			},
+			cli.BoolFlag{
+				Name:  "dingtalkAtAll, daa",
+				Usage: "dingtalk 通知 @ 所有人",
 			},
 
 			cli.StringFlag{
@@ -192,15 +221,22 @@ func uploadFile() cli.Command {
 				Name:  "larkCustomMsg, lcm",
 				Usage: "飞书的机器人的自定义消息, 用于发送通知增加关键字",
 			},
+			cli.StringFlag{
+				Name:  "larkCustomTitle, lct",
+				Usage: "飞书的机器人通知的自定义标题, 默认 \"<name> uploaded\"",
+			},
 
 			cli.StringFlag{
 				Name:  "wecomToken, wt",
 				Usage: "企业微信的机器人的 token, 用于发送通知",
 			},
-
 			cli.StringFlag{
 				Name:  "wecomCustomMsg, wcm",
 				Usage: "企业微信的机器人的自定义消息, 用于发送通知增加关键字",
+			},
+			cli.StringFlag{
+				Name:  "wecomPicUrl, wpu",
+				Usage: "企业微信通知卡片的封面图 URL, 默认是下载页二维码",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -241,13 +277,17 @@ func uploadFile() cli.Command {
 			}
 
 			api := api.FirApi{
-				ApiToken:         token,
-				CustomIconPath:   c.String("icon_path"),
-				AppChangelog:     changelog,
-				QrCodePngNeed:    c.Bool("qrcode"),
-				QrCodeAsciiNeed:  c.Bool("qrcodeascii"),
-				SaveUploadedInfo: c.Bool("save-uploaded-info"),
-				SaveUploadedPath: c.String("save-uploaded-file"),
+				ApiToken:              token,
+				CustomIconPath:        c.String("icon_path"),
+				AppChangelog:          changelog,
+				QrCodePngNeed:         c.Bool("qrcode"),
+				QrCodeAsciiNeed:       c.Bool("qrcodeascii"),
+				SaveUploadedInfo:      c.Bool("save-uploaded-info"),
+				SaveUploadedPath:      c.String("save-uploaded-file"),
+				SpecifyAppDisplayName: c.String("specify-app-display-name"),
+				SkipUpdateIcon:        c.Bool("skip-update-icon"),
+				UserDownloadFileName:  c.String("user-download-file-name"),
+				ForcePinHistory:       c.Bool("force-pin-history"),
 			}
 
 			api.Upload(file)
@@ -270,9 +310,19 @@ func uploadFile() cli.Command {
 			}
 
 			if c.String("dingtalkToken") != "" {
+				var atPhones []string
+				if raw := c.String("dingtalkAtPhones"); raw != "" {
+					for _, p := range strings.Split(raw, ",") {
+						if p = strings.TrimSpace(p); p != "" {
+							atPhones = append(atPhones, p)
+						}
+					}
+				}
 				notifier := &notifiers.DingTalkNotifier{
 					Key:         c.String("dingtalkToken"),
 					SecretToken: c.String("dingtalkSecret"),
+					AtPhones:    atPhones,
+					IsAtAll:     c.Bool("dingtalkAtAll"),
 				}
 
 				json := notifier.BuildAppPubishedMessage(api.ApiAppInfo, c.String("dingtalkCustomMsg"), url)
@@ -283,6 +333,7 @@ func uploadFile() cli.Command {
 				notifier := &notifiers.LarkNotifier{
 					Key:         c.String("larkToken"),
 					SecretToken: c.String("larkSecret"),
+					CustomTitle: c.String("larkCustomTitle"),
 				}
 
 				json := notifier.BuildAppPubishedMessage(api.ApiAppInfo, c.String("larkCustomMsg"), url)
@@ -291,7 +342,8 @@ func uploadFile() cli.Command {
 
 			if c.String("wecomToken") != "" {
 				notifier := &notifiers.WeComNotifier{
-					Key: c.String("wecomToken"),
+					Key:    c.String("wecomToken"),
+					PicUrl: c.String("wecomPicUrl"),
 				}
 				json := notifier.BuildAppPubishedMessage(api.ApiAppInfo, c.String("wecomCustomMsg"), url)
 				notifier.Notify(json)
@@ -306,6 +358,73 @@ func buildDownloadUrl(apiAppInfo *api.ApiAppInfo, includeRelease bool) string {
 		return fmt.Sprintf("http://%s/%s?release_id=%s", apiAppInfo.DownloadDomain, apiAppInfo.Short, apiAppInfo.MasterReleaseId)
 	}
 	return fmt.Sprintf("http://%s/%s", apiAppInfo.DownloadDomain, apiAppInfo.Short)
+}
+
+func meCommand() cli.Command {
+	return cli.Command{
+		Name:  "me",
+		Usage: "查看当前登录的 fir.im 用户",
+		Action: func(c *cli.Context) error {
+			token := c.GlobalString("token")
+			if token == "" {
+				token = utils.LoadLocalToken()
+			}
+			if token == "" {
+				fmt.Println("请先登录: go-fir-cli login -t <api_token>")
+				return nil
+			}
+			firApi := &api.FirApi{}
+			if err := firApi.Login(token); err != nil {
+				fmt.Println("登录失败, 请检查 token 是否正确:", err)
+				return err
+			}
+			fmt.Println("当前登录用户:", firApi.Email)
+			return nil
+		},
+	}
+}
+
+func infoCommand() cli.Command {
+	return cli.Command{
+		Name:      "info",
+		ShortName: "i",
+		Usage:     "查看 ipa/apk 应用信息, 用法: go-fir-cli info -f FILE 或 go-fir-cli info FILE",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "file, f",
+				Usage: "apk 或者 ipa 的文件路径",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			file := c.String("file")
+			if file == "" && c.NArg() > 0 {
+				file = c.Args().First()
+			}
+			if file == "" {
+				fmt.Println("请使用 -f 设置文件路径, 或者 go-fir-cli info <文件路径>")
+				return nil
+			}
+
+			svc, err := analysis.NewUploadAppService(file)
+			if err != nil {
+				fmt.Println("解析失败:", err)
+				return err
+			}
+			info := svc.AppFileInfo
+			fmt.Printf("type:         %s\n", info.Type)
+			fmt.Printf("name:         %s\n", info.Name)
+			fmt.Printf("bundle_id:    %s\n", info.BundleId)
+			fmt.Printf("version:      %s\n", info.Version)
+			fmt.Printf("build:        %s\n", info.Build)
+			fmt.Printf("release_type: %s\n", info.ReleaseType)
+			fmt.Printf("size:         %d\n", info.Size)
+			if len(info.Udids) > 0 {
+				fmt.Printf("udids:        %v\n", info.Udids)
+			}
+			fmt.Printf("file_path:    %s\n", file)
+			return nil
+		},
+	}
 }
 
 // 直接运行

@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"time"
@@ -17,18 +18,31 @@ import (
 type DingTalkNotifier struct {
 	Key         string
 	SecretToken string
+	AtPhones    []string // 对应 Ruby --dingtalk_at_phones
+	IsAtAll     bool     // 对应 Ruby --dingtalk_at_all
 }
 
 func (d *DingTalkNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, CustomMsg, DownloadUrl string) string {
-	jsonStr := fmt.Sprintf(`{
-		"msgtype": 'markdown',
-		"markdown": {
-		  "title": "%s uploaded",
-		  "text": "#### %s(%s)\n\n>uploaded at #{%s}\n\nurl: %s\n\n%s\n\n ![](https://api.appmeta.cn/welcome/qrcode?url=%s)"
+	payload := map[string]interface{}{
+		"msgtype": "markdown",
+		"markdown": map[string]string{
+			"title": fmt.Sprintf("%s uploaded", apiAppInfo.Name),
+			"text": fmt.Sprintf(
+				"#### %s(%s)\n\n>uploaded at %s\n\nurl: %s\n\n%s\n\n ![](https://api.appmeta.cn/welcome/qrcode?url=%s)",
+				apiAppInfo.Name, apiAppInfo.Type, time.Now().Format(time.RFC3339),
+				DownloadUrl, CustomMsg, url.PathEscape(DownloadUrl),
+			),
+		},
+	}
+	if len(d.AtPhones) > 0 || d.IsAtAll {
+		at := map[string]interface{}{"isAtAll": d.IsAtAll}
+		if len(d.AtPhones) > 0 {
+			at["atMobiles"] = d.AtPhones
 		}
-	  }`, apiAppInfo.Name, apiAppInfo.Name, apiAppInfo.Type, time.Now(), DownloadUrl, CustomMsg, url.PathEscape(DownloadUrl))
-
-	return jsonStr
+		payload["at"] = at
+	}
+	b, _ := json.Marshal(payload)
+	return string(b)
 }
 
 func (d *DingTalkNotifier) Notify(jsonStr string) error {

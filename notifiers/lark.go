@@ -14,17 +14,22 @@ import (
 type LarkNotifier struct {
 	Key         string
 	SecretToken string
+	CustomTitle string // 对应 Ruby --feishu_custom_title, 为空时回退到 "<name> uploaded"
 }
 
 // https://open.feishu.cn/document/ukTMukTMukTM/ucTM5YjL3ETO24yNxkjN
 
 func (l *LarkNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, CustomMsg, DownloadUrl string) string {
+	title := l.CustomTitle
+	if title == "" {
+		title = fmt.Sprintf("%s uploaded", apiAppInfo.Name)
+	}
 	partialJSON := fmt.Sprintf(`
 		"msg_type": "post",
 		"content": {
 			"post": {
 				"zh_cn": {
-					"title": "%s uploaded",
+					"title": "%s",
 					"content": [
 						[
 							{
@@ -48,7 +53,7 @@ func (l *LarkNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, Custo
 					]
 				}
 			}
-		}`, apiAppInfo.Name, apiAppInfo.Name, apiAppInfo.Type, time.Now(), DownloadUrl, CustomMsg)
+		}`, title, apiAppInfo.Name, apiAppInfo.Type, time.Now(), DownloadUrl, CustomMsg)
 
 	return partialJSON
 }

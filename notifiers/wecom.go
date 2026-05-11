@@ -10,10 +10,15 @@ import (
 )
 
 type WeComNotifier struct {
-	Key string
+	Key    string
+	PicUrl string // 对应 Ruby --wxwork_pic_url, 自定义消息封面图, 为空回退到默认二维码
 }
 
 func (w *WeComNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, CustomMsg, DownloadUrl string) string {
+	picUrl := w.PicUrl
+	if picUrl == "" {
+		picUrl = "https://api.appmeta.cn/welcome/qrcode?url=" + url.PathEscape(DownloadUrl)
+	}
 	jsonStr := fmt.Sprintf(`{
 		"msgtype": "news",
 		"news": {
@@ -22,10 +27,10 @@ func (w *WeComNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, Cust
 					"title": "%s",
 					"description": "%s (%s) uploaded at %s",
 					"url": "%s",
-					"picurl": "https://api.appmeta.cn/welcome/qrcode?url=%s"
+					"picurl": "%s"
 				}]
 		}
-	}`, apiAppInfo.Name, apiAppInfo.Name, apiAppInfo.Type, time.Now(), DownloadUrl, url.PathEscape(DownloadUrl))
+	}`, apiAppInfo.Name, apiAppInfo.Name, apiAppInfo.Type, time.Now(), DownloadUrl, picUrl)
 	return jsonStr
 }
 
