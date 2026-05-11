@@ -10,14 +10,19 @@ import (
 )
 
 type WeComNotifier struct {
-	Key    string
-	PicUrl string // 对应 Ruby --wxwork_pic_url, 自定义消息封面图, 为空回退到默认二维码
+	Key       string
+	CustomMsg string // 自定义关键字 / 备注, 拼到消息描述末尾
+	PicUrl    string // 对应 Ruby --wxwork_pic_url, 自定义消息封面图, 为空回退到默认二维码
 }
 
-func (w *WeComNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, CustomMsg, DownloadUrl string) string {
+func (w *WeComNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, DownloadUrl string) string {
 	picUrl := w.PicUrl
 	if picUrl == "" {
 		picUrl = "https://api.appmeta.cn/welcome/qrcode?url=" + url.PathEscape(DownloadUrl)
+	}
+	description := fmt.Sprintf("%s (%s) uploaded at %s", apiAppInfo.Name, apiAppInfo.Type, time.Now().Format(time.RFC3339))
+	if w.CustomMsg != "" {
+		description = description + ". " + w.CustomMsg
 	}
 	jsonStr := fmt.Sprintf(`{
 		"msgtype": "news",
@@ -25,12 +30,12 @@ func (w *WeComNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, Cust
 			"articles": [
 				{
 					"title": "%s",
-					"description": "%s (%s) uploaded at %s",
+					"description": "%s",
 					"url": "%s",
 					"picurl": "%s"
 				}]
 		}
-	}`, apiAppInfo.Name, apiAppInfo.Name, apiAppInfo.Type, time.Now(), DownloadUrl, picUrl)
+	}`, apiAppInfo.Name, description, DownloadUrl, picUrl)
 	return jsonStr
 }
 

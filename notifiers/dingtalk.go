@@ -18,11 +18,12 @@ import (
 type DingTalkNotifier struct {
 	Key         string
 	SecretToken string
+	CustomMsg   string   // 自定义关键字 / 备注, 拼到消息正文末尾
 	AtPhones    []string // 对应 Ruby --dingtalk_at_phones
 	IsAtAll     bool     // 对应 Ruby --dingtalk_at_all
 }
 
-func (d *DingTalkNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, CustomMsg, DownloadUrl string) string {
+func (d *DingTalkNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, DownloadUrl string) string {
 	payload := map[string]interface{}{
 		"msgtype": "markdown",
 		"markdown": map[string]string{
@@ -30,7 +31,7 @@ func (d *DingTalkNotifier) BuildAppPubishedMessage(apiAppInfo *api.ApiAppInfo, C
 			"text": fmt.Sprintf(
 				"#### %s(%s)\n\n>uploaded at %s\n\nurl: %s\n\n%s\n\n ![](https://api.appmeta.cn/welcome/qrcode?url=%s)",
 				apiAppInfo.Name, apiAppInfo.Type, time.Now().Format(time.RFC3339),
-				DownloadUrl, CustomMsg, url.PathEscape(DownloadUrl),
+				DownloadUrl, d.CustomMsg, url.PathEscape(DownloadUrl),
 			),
 		},
 	}
